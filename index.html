@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Sessions</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface-hover: #1c2129;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-dim: #8b949e;
+    --accent: #c084fc;
+    --accent-dim: #7c3aed;
+    --green: #3fb950;
+    --orange: #d29922;
+    --blue: #58a6ff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  .header {
+    padding: 24px 32px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .header h1 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .header h1 .icon {
+    width: 28px;
+    height: 28px;
+    background: var(--accent);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
+
+  .stats {
+    display: flex;
+    gap: 20px;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .stats span { display: flex; align-items: center; gap: 4px; }
+  .stats .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .stats .dot.green { background: var(--green); }
+  .stats .dot.orange { background: var(--orange); }
+
+  .controls {
+    padding: 16px 32px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .search {
+    flex: 1;
+    min-width: 200px;
+    max-width: 400px;
+    padding: 8px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .search:focus { border-color: var(--accent); }
+  .search::placeholder { color: var(--text-dim); }
+
+  .filter-btn {
+    padding: 6px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    color: var(--text-dim);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .filter-btn:hover { border-color: var(--text-dim); color: var(--text); }
+  .filter-btn.active { background: var(--accent-dim); border-color: var(--accent); color: white; }
+
+  .project-select {
+    position: relative;
+  }
+
+  .project-select-btn {
+    padding: 6px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    color: var(--text-dim);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .project-select-btn:hover { border-color: var(--text-dim); color: var(--text); }
+  .project-select-btn.active { background: var(--accent-dim); border-color: var(--accent); color: white; }
+  .project-select-btn .arrow { font-size: 10px; }
+
+  .project-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    min-width: 280px;
+    max-height: 320px;
+    overflow-y: auto;
+    z-index: 50;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  .project-dropdown.open { display: block; }
+
+  .project-option {
+    padding: 8px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.1s;
+  }
+  .project-option:hover { background: var(--surface-hover); }
+  .project-option.selected { color: var(--accent); }
+  .project-option .count {
+    font-size: 11px;
+    color: var(--text-dim);
+    background: var(--bg);
+    padding: 1px 6px;
+    border-radius: 8px;
+  }
+
+  .sessions {
+    padding: 8px 32px 32px;
+  }
+
+  .session-group {
+    margin-bottom: 24px;
+  }
+
+  .group-label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-dim);
+    padding: 8px 0;
+  }
+
+  .session-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    align-items: start;
+  }
+  .session-card:hover {
+    background: var(--surface-hover);
+    border-color: var(--accent-dim);
+  }
+  .session-card.current {
+    border-left: 3px solid var(--green);
+  }
+
+  .session-main { min-width: 0; }
+
+  .session-title {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .session-title .custom-title {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .session-title .badge {
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+  .badge.current { background: rgba(63,185,80,0.15); color: var(--green); }
+  .badge.sidechain { background: rgba(210,153,34,0.15); color: var(--orange); }
+
+  .session-prompt {
+    font-size: 13px;
+    color: var(--text-dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 700px;
+  }
+
+  .session-messages {
+    margin-top: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .session-msg {
+    font-size: 12px;
+    color: var(--text-dim);
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    line-height: 1.4;
+  }
+
+  .session-msg .msg-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--accent);
+    background: rgba(192,132,252,0.1);
+    padding: 0 5px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  .session-msg .msg-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 650px;
+  }
+
+  .session-meta {
+    display: flex;
+    gap: 14px;
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .session-meta span { display: flex; align-items: center; gap: 4px; }
+
+  .session-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .session-id {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    background: var(--bg);
+    padding: 3px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: 1px solid transparent;
+    white-space: nowrap;
+  }
+  .session-id:hover {
+    color: var(--accent);
+    border-color: var(--accent-dim);
+  }
+
+  .copy-cmd {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    background: var(--bg);
+    padding: 3px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: 1px solid transparent;
+    white-space: nowrap;
+  }
+  .copy-cmd:hover {
+    color: var(--blue);
+    border-color: var(--blue);
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--accent-dim);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s;
+    z-index: 100;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-dim);
+  }
+
+  .project-tag {
+    font-size: 11px;
+    padding: 1px 8px;
+    border-radius: 10px;
+    background: rgba(88,166,255,0.1);
+    color: var(--blue);
+    white-space: nowrap;
+  }
+
+  @media (max-width: 640px) {
+    .header, .controls, .sessions { padding-left: 16px; padding-right: 16px; }
+    .session-card { grid-template-columns: 1fr; }
+    .session-actions { flex-direction: row; align-items: center; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1><span class="icon">C</span> Claude Sessions</h1>
+  <div class="stats" id="stats"></div>
+</div>
+
+<div class="controls">
+  <input class="search" type="text" placeholder="Search sessions..." id="search">
+  <button class="filter-btn active" data-filter="all">All</button>
+  <button class="filter-btn" data-filter="titled">Titled</button>
+  <button class="filter-btn" data-filter="recent">Last 24h</button>
+  <div class="project-select">
+    <div class="project-select-btn" id="projectBtn" onclick="toggleProjectDropdown()">
+      <span id="projectLabel">All projects</span>
+      <span class="arrow">▾</span>
+    </div>
+    <div class="project-dropdown" id="projectDropdown"></div>
+  </div>
+</div>
+
+<div class="sessions" id="sessions"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+let allSessions = [];
+let currentFilter = 'all';
+let currentProject = null; // null = all
+
+async function loadSessions() {
+  const res = await fetch('/api/sessions');
+  allSessions = await res.json();
+  updateStats();
+  buildProjectDropdown();
+  renderSessions();
+}
+
+function updateStats() {
+  const total = allSessions.length;
+  const projects = new Set(allSessions.map(s => s.projectPath)).size;
+  const titled = allSessions.filter(s => s.customTitle).length;
+  document.getElementById('stats').innerHTML = `
+    <span><span class="dot green"></span>${total} sessions</span>
+    <span><span class="dot orange"></span>${projects} projects</span>
+    <span>${titled} titled</span>
+  `;
+}
+
+function formatDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const now = new Date();
+  const diff = now - d;
+  const mins = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days < 7) return `${days}d ago`;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function formatProject(path) {
+  if (!path) return '';
+  return path.replace(/^\/Users\/\w+\//, '~/').replace(/^~\/$/, '~');
+}
+
+function matchesSearch(session, query) {
+  if (!query) return true;
+  const q = query.toLowerCase();
+  return (
+    (session.customTitle || '').toLowerCase().includes(q) ||
+    (session.summary || '').toLowerCase().includes(q) ||
+    (session.firstPrompt || '').toLowerCase().includes(q) ||
+    (session.sessionId || '').toLowerCase().includes(q) ||
+    (session.projectPath || '').toLowerCase().includes(q) ||
+    (session.gitBranch || '').toLowerCase().includes(q) ||
+    (session.lastMessages || []).some(m => m.toLowerCase().includes(q))
+  );
+}
+
+function matchesFilter(session) {
+  if (currentFilter === 'titled' && !session.customTitle) return false;
+  if (currentFilter === 'recent') {
+    const d = new Date(session.modified);
+    if ((Date.now() - d) >= 86400000) return false;
+  }
+  if (currentProject !== null && session.projectPath !== currentProject) return false;
+  return true;
+}
+
+function buildProjectDropdown() {
+  const counts = {};
+  for (const s of allSessions) {
+    const p = formatProject(s.projectPath) || '~';
+    counts[p] = (counts[p] || 0) + 1;
+  }
+  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  const dd = document.getElementById('projectDropdown');
+  let html = `<div class="project-option${currentProject === null ? ' selected' : ''}" onclick="selectProject(null)">
+    <span>All projects</span><span class="count">${allSessions.length}</span>
+  </div>`;
+  for (const [name, count] of sorted) {
+    const rawPath = allSessions.find(s => formatProject(s.projectPath) === name)?.projectPath || '';
+    const sel = currentProject === rawPath ? ' selected' : '';
+    html += `<div class="project-option${sel}" onclick="selectProject('${rawPath.replace(/'/g, "\\'")}')">
+      <span>${esc(name)}</span><span class="count">${count}</span>
+    </div>`;
+  }
+  dd.innerHTML = html;
+}
+
+function toggleProjectDropdown() {
+  document.getElementById('projectDropdown').classList.toggle('open');
+}
+
+function selectProject(path) {
+  currentProject = path;
+  document.getElementById('projectDropdown').classList.remove('open');
+  const btn = document.getElementById('projectBtn');
+  const label = document.getElementById('projectLabel');
+  if (path === null) {
+    label.textContent = 'All projects';
+    btn.classList.remove('active');
+  } else {
+    label.textContent = formatProject(path) || '~';
+    btn.classList.add('active');
+  }
+  buildProjectDropdown();
+  renderSessions();
+}
+
+// Close dropdown on outside click
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.project-select')) {
+    document.getElementById('projectDropdown').classList.remove('open');
+  }
+});
+
+function groupByDate(sessions) {
+  const groups = {};
+  const now = new Date();
+
+  for (const s of sessions) {
+    const d = new Date(s.modified);
+    const diff = now - d;
+    let label;
+    if (diff < 86400000) label = 'Today';
+    else if (diff < 172800000) label = 'Yesterday';
+    else if (diff < 604800000) label = 'This Week';
+    else if (diff < 2592000000) label = 'This Month';
+    else label = 'Older';
+
+    if (!groups[label]) groups[label] = [];
+    groups[label].push(s);
+  }
+  return groups;
+}
+
+function renderSessions() {
+  const query = document.getElementById('search').value;
+  const filtered = allSessions.filter(s => matchesSearch(s, query) && matchesFilter(s));
+  const groups = groupByDate(filtered);
+  const container = document.getElementById('sessions');
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="empty">No sessions found</div>';
+    return;
+  }
+
+  const order = ['Today', 'Yesterday', 'This Week', 'This Month', 'Older'];
+  let html = '';
+
+  for (const label of order) {
+    const sessions = groups[label];
+    if (!sessions || sessions.length === 0) continue;
+
+    html += `<div class="session-group"><div class="group-label">${label} (${sessions.length})</div>`;
+
+    for (const s of sessions) {
+      const title = s.customTitle
+        ? `<span class="custom-title">${esc(s.customTitle)}</span>`
+        : esc(s.summary || 'Untitled');
+
+      const badges = [
+        s.isCurrent ? '<span class="badge current">ACTIVE</span>' : '',
+        s.isSidechain ? '<span class="badge sidechain">sidechain</span>' : '',
+      ].filter(Boolean).join('');
+
+      const project = formatProject(s.projectPath);
+      const branch = s.gitBranch && s.gitBranch !== 'HEAD' ? s.gitBranch : '';
+
+      const msgs = (s.lastMessages || []);
+      const msgsHtml = msgs.length > 0
+        ? `<div class="session-messages">${msgs.map((m, i) =>
+            `<div class="session-msg"><span class="msg-label">${i === msgs.length - 1 ? 'last' : 'prev'}</span><span class="msg-text">${esc(m)}</span></div>`
+          ).join('')}</div>`
+        : '';
+
+      html += `
+        <div class="session-card${s.isCurrent ? ' current' : ''}">
+          <div class="session-main">
+            <div class="session-title">${title} ${badges}</div>
+            <div class="session-prompt">${esc(s.firstPrompt || '')}</div>
+            ${msgsHtml}
+            <div class="session-meta">
+              <span>${formatDate(s.modified)}</span>
+              <span>${s.messageCount || 0} msgs</span>
+              ${project ? `<span class="project-tag">${esc(project)}</span>` : ''}
+              ${branch ? `<span>branch: ${esc(branch)}</span>` : ''}
+            </div>
+          </div>
+          <div class="session-actions">
+            <div class="session-id" onclick="copyText('${s.sessionId}', 'Session ID copied!')" title="Copy session ID">${s.sessionId.slice(0, 8)}...</div>
+            <div class="copy-cmd" onclick="copyText('claude --resume ${s.sessionId}', 'Resume command copied!')" title="Copy resume command">resume</div>
+          </div>
+        </div>`;
+    }
+    html += '</div>';
+  }
+
+  container.innerHTML = html;
+}
+
+function esc(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function copyText(text, msg) {
+  navigator.clipboard.writeText(text).then(() => showToast(msg));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// Events
+document.getElementById('search').addEventListener('input', renderSessions);
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    renderSessions();
+  });
+});
+
+// Init
+loadSessions();
+// Auto-refresh every 30s
+setInterval(loadSessions, 30000);
+</script>
+</body>
+</html>
