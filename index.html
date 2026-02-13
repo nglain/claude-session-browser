@@ -320,6 +320,27 @@
     border-color: var(--blue);
   }
 
+  .open-btn {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 11px;
+    color: var(--bg);
+    background: var(--green);
+    padding: 3px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: 1px solid transparent;
+    white-space: nowrap;
+    font-weight: 600;
+  }
+  .open-btn:hover {
+    background: #2ea043;
+  }
+  .open-btn.loading {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
   .toast {
     position: fixed;
     bottom: 24px;
@@ -574,7 +595,8 @@ function renderSessions() {
           </div>
           <div class="session-actions">
             <div class="session-id" onclick="copyText('${s.sessionId}', 'Session ID copied!')" title="Copy session ID">${s.sessionId.slice(0, 8)}...</div>
-            <div class="copy-cmd" onclick="copyText('claude --resume ${s.sessionId}', 'Resume command copied!')" title="Copy resume command">resume</div>
+            <div class="copy-cmd" onclick="copyText('claude --resume ${s.sessionId}', 'Resume command copied!')" title="Copy resume command">copy cmd</div>
+            <div class="open-btn" onclick="openResume('${s.sessionId}', '${(s.projectPath || '').replace(/'/g, "\\'")}', this)" title="Open Terminal with claude --resume">open</div>
           </div>
         </div>`;
     }
@@ -592,6 +614,28 @@ function esc(str) {
 
 function copyText(text, msg) {
   navigator.clipboard.writeText(text).then(() => showToast(msg));
+}
+
+async function openResume(sessionId, projectPath, btn) {
+  btn.classList.add('loading');
+  btn.textContent = '...';
+  try {
+    const res = await fetch('/api/resume', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId, projectPath })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showToast('Terminal opened!');
+    } else {
+      showToast('Error: ' + data.message);
+    }
+  } catch (e) {
+    showToast('Failed to open terminal');
+  }
+  btn.classList.remove('loading');
+  btn.textContent = 'open';
 }
 
 function showToast(msg) {

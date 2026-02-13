@@ -3,6 +3,8 @@
 
 import json
 import os
+import re
+import subprocess
 import sys
 import webbrowser
 from datetime import datetime, timezone
@@ -196,6 +198,31 @@ def get_all_sessions():
     return sessions
 
 
+def open_terminal_with_resume(session_id, project_path=""):
+    """Open Terminal.app with claude --resume in the session's project directory."""
+    # Validate session_id format (UUID)
+    if not re.match(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', session_id):
+        return False, "Invalid session ID"
+
+    cd_cmd = ""
+    if project_path and os.path.isdir(project_path):
+        cd_cmd = f'cd "{project_path}" && '
+
+    cmd = f'{cd_cmd}claude --resume {session_id}'
+
+    applescript = f'''
+    tell application "Terminal"
+        activate
+        do script "{cmd}"
+    end tell
+    '''
+    try:
+        subprocess.run(["osascript", "-e", applescript], check=True, timeout=5)
+        return True, "OK"
+    except Exception as e:
+        return False, str(e)
+
+
 class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
@@ -215,6 +242,27 @@ class Handler(SimpleHTTPRequestHandler):
             self.end_headers()
             html_path = Path(__file__).parent / "index.html"
             self.wfile.write(html_path.read_bytes())
+            return
+
+        self.send_response(404)
+        self.end_headers()
+
+    def do_POST(self):
+        parsed = urlparse(self.path)
+
+        if parsed.path == "/api/resume":
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length)) if length else {}
+            sid = body.get("sessionId", "")
+            project = body.get("projectPath", "")
+
+            ok, msg = open_terminal_with_resume(sid, project)
+
+            self.send_response(200 if ok else 400)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(json.dumps({"ok": ok, "message": msg}).encode())
             return
 
         self.send_response(404)
