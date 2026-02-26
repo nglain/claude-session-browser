@@ -199,25 +199,24 @@ def get_all_sessions():
 
 
 def open_terminal_with_resume(session_id, project_path=""):
-    """Open Terminal.app with claude --resume in the session's project directory."""
-    # Validate session_id format (UUID)
+    """Open Terminal.app with cl --resume in the session's project directory."""
     if not re.match(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', session_id):
         return False, "Invalid session ID"
 
-    cd_cmd = ""
+    parts = []
     if project_path and os.path.isdir(project_path):
-        cd_cmd = f'cd "{project_path}" && '
+        parts.append(f"cd {project_path}")
+    parts.append(f"cl --resume {session_id}")
+    cmd = " && ".join(parts)
 
-    cmd = f'{cd_cmd}claude --resume {session_id}'
-
-    applescript = f'''
-    tell application "Terminal"
-        activate
-        do script "{cmd}"
-    end tell
-    '''
+    script = (
+        'tell application "Terminal"\n'
+        "  activate\n"
+        f'  do script "{cmd}"\n'
+        "end tell"
+    )
     try:
-        subprocess.run(["osascript", "-e", applescript], check=True, timeout=5)
+        subprocess.run(["osascript"], input=script, text=True, check=True, timeout=5)
         return True, "OK"
     except Exception as e:
         return False, str(e)

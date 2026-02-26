@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Claude Sessions</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗂</text></svg>">
 <style>
   :root {
     --bg: #0d1117;
@@ -595,7 +596,7 @@ function renderSessions() {
           </div>
           <div class="session-actions">
             <div class="session-id" onclick="copyText('${s.sessionId}', 'Session ID copied!')" title="Copy session ID">${s.sessionId.slice(0, 8)}...</div>
-            <div class="copy-cmd" onclick="copyText('claude --resume ${s.sessionId}', 'Resume command copied!')" title="Copy resume command">copy cmd</div>
+            <div class="copy-cmd" onclick="copyText('cl --resume ${s.sessionId}', 'Resume command copied!')" title="Copy resume command">copy cmd</div>
             <div class="open-btn" onclick="openResume('${s.sessionId}', '${(s.projectPath || '').replace(/'/g, "\\'")}', this)" title="Open Terminal with claude --resume">open</div>
           </div>
         </div>`;

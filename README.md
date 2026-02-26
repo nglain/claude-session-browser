@@ -20,7 +20,7 @@ Web UI for browsing Claude Code sessions and quickly getting `session_id` for th
 ## Usage
 
 ```bash
-python3 ~/.claude/session-browser/server.py
+python3 server.py
 ```
 
 Opens `http://127.0.0.1:7654` in your browser.
@@ -28,7 +28,9 @@ Opens `http://127.0.0.1:7654` in your browser.
 ## Install
 
 ```bash
-git clone https://github.com/nglain/claude-session-browser.git ~/.claude/session-browser
+git clone https://github.com/nglain/claude-session-browser.git
+cd claude-session-browser
+python3 server.py
 ```
 
 ## How it works
